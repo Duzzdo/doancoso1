@@ -1,0 +1,25 @@
+# Compiled class files
+*.class
+bin/
+out/
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database files (optional - uncomment if you don't want to commit DB)
+# *.db
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
