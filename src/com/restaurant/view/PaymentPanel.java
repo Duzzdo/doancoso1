@@ -199,40 +199,54 @@ public class PaymentPanel extends JPanel {
      * Xử lý chọn đơn hàng cần thanh toán
      */
     private void handleSelectOrder() {
-        // Lấy tất cả đơn hàng đang pending (chưa thanh toán)
         List<DonDatDTO> pendingOrders = donDatDAO.getAllDonDat().stream()
-            .filter(order -> "pending".equals(order.getTinhTrang()))    // Lọc chỉ lấy đơn pending
+            // Filter chỉ lấy đơn với tình trạng = "pending"
+            .filter(order -> "pending".equals(order.getTinhTrang()))
+            // Chuyển stream thành list
             .toList();
 
-        if (pendingOrders.isEmpty()) {                                   // Nếu không có đơn nào
+        // Kiểm tra danh sách có đơn nào chưa
+        if (pendingOrders.isEmpty()) {
+            // Hiển thị thông báo không có đơn cần thanh toán
             JOptionPane.showMessageDialog(this, "Không có đơn hàng nào cần thanh toán!",
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 
-        // Tạo danh sách options cho dialog
+        // Tạo danh sách options (display strings) từ danh sách đơn
         String[] orderOptions = pendingOrders.stream()
+            // Map từng đơn sang string hiển thị
             .map(order -> {
-                BanAnDTO ban = banAnDAO.getBanAnById(order.getMaBan()); // Lấy thông tin bàn
+                // Lấy thông tin bàn từ database
+                BanAnDTO ban = banAnDAO.getBanAnById(order.getMaBan());
+                // Lấy tên bàn, nếu không tìm thấy thì dùng "N/A"
                 String tenBan = ban != null ? ban.getTenBan() : "N/A";
-                return String.format("Đơn #%d - Bàn %s - %,.0f VNĐ",    // Format: "Đơn #1 - Bàn A1 - 150,000 VNĐ"
+                // Return string format: "Đơn #1 - Bàn A1 - 150,000 VNĐ"
+                return String.format("Đơn #%d - Bàn %s - %,.0f VNĐ",
                     order.getMaDonDat(), tenBan, order.getTongTien());
             })
+            // Chuyển stream thành array
             .toArray(String[]::new);
 
-        String selected = (String) JOptionPane.showInputDialog(         // Hiển thị dialog chọn đơn
+        // Hiển thị dialog chọn đơn hàng
+        String selected = (String) JOptionPane.showInputDialog(
             this,
             "Chọn đơn hàng cần thanh toán:",
             "Chọn đơn hàng",
             JOptionPane.QUESTION_MESSAGE,
             null,
+            // Danh sách các option để chọn
             orderOptions,
+            // Option mặc định (item đầu tiên)
             orderOptions[0]
         );
 
-        if (selected != null) {                                          // Nếu user chọn đơn (không cancel)
-            int index = java.util.Arrays.asList(orderOptions).indexOf(selected); // Lấy index của đơn đã chọn
-            loadOrderForPayment(pendingOrders.get(index));               // Load thông tin đơn
+        // Kiểm tra user đã chọn (không cancel)
+        if (selected != null) {
+            // Tìm index của đơn đã chọn trong danh sách options
+            int index = java.util.Arrays.asList(orderOptions).indexOf(selected);
+            // Load thông tin đơn vào panel thanh toán
+            loadOrderForPayment(pendingOrders.get(index));
         }
     }
 
@@ -276,38 +290,53 @@ public class PaymentPanel extends JPanel {
      * Xử lý thanh toán đơn hàng
      */
     private void handlePayment() {
-        if (currentOrder == null) {                                      // Nếu chưa chọn đơn
+        // Kiểm tra nếu chưa chọn đơn hàng
+        if (currentOrder == null) {
+            // Hiển thị thông báo yêu cầu chọn đơn
             JOptionPane.showMessageDialog(this, "Vui lòng chọn đơn hàng cần thanh toán!",
                     "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this,               // Hiển thị dialog xác nhận
+        // Hiển thị dialog xác nhận thanh toán
+        int confirm = JOptionPane.showConfirmDialog(this,
+                // Message hiển thị mã đơn và tổng tiền
                 String.format("Xác nhận thanh toán đơn hàng #%d?\nTổng tiền: %,.0f VNĐ",
                     currentOrder.getMaDonDat(), currentOrder.getTongTien()),
                 "Xác nhận thanh toán",
+                // 2 options: Yes/No
                 JOptionPane.YES_NO_OPTION,
+                // Loại dialog: Question
                 JOptionPane.QUESTION_MESSAGE);
 
-        if (confirm == JOptionPane.YES_OPTION) {                         // Nếu user confirm
-            // Cập nhật trạng thái đơn hàng thành "completed"
+        // Kiểm tra nếu user confirm thanh toán
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Cập nhật trạng thái đơn hàng thành "completed" (đã thanh toán)
             currentOrder.setTinhTrang("completed");
-            if (donDatDAO.updateDonDat(currentOrder)) {                  // Update vào database
-                // Cập nhật trạng thái bàn thành "available" (false = trống)
+            // Cập nhật vào database
+            if (donDatDAO.updateDonDat(currentOrder)) {
+                // Lấy thông tin bàn từ database
                 BanAnDTO ban = banAnDAO.getBanAnById(currentOrder.getMaBan());
+                // Kiểm tra nếu tìm thấy bàn
                 if (ban != null) {
-                    ban.setTinhTrang("false");                           // false = bàn trống
-                    banAnDAO.updateBanAn(ban);                           // Update vào database
+                    // Đặt trạng thái bàn thành "false" (trống)
+                    ban.setTinhTrang("false");
+                    // Cập nhật vào database
+                    banAnDAO.updateBanAn(ban);
                 }
 
+                // Hiển thị thông báo thành công
                 JOptionPane.showMessageDialog(this,
                         "Thanh toán thành công!",
                         "Thành công",
                         JOptionPane.INFORMATION_MESSAGE);
 
-                clearPayment();                                          // Xóa thông tin thanh toán
-                refreshMainFrameHome();                                  // Refresh dashboard
+                // Xóa thông tin thanh toán hiện tại
+                clearPayment();
+                // Refresh dashboard để cập nhật dữ liệu
+                refreshMainFrameHome();
             } else {
+                // Hiển thị thông báo lỗi nếu update thất bại
                 JOptionPane.showMessageDialog(this,
                         "Thanh toán thất bại!",
                         "Lỗi",
