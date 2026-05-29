@@ -85,15 +85,22 @@ public class TableManagementPanel extends JPanel {
      * Load tất cả bàn từ database và hiển thị trong grid
      */
     private void loadTables() {
+        // Xóa tất cả buttons bàn cũ trước khi load lại
         tablesPanel.removeAll();
+        // Lấy danh sách tất cả bàn từ database
         List<BanAnDTO> tables = banAnDAO.getAllBanAn();
 
+        // Duyệt qua từng bàn trong danh sách
         for (BanAnDTO ban : tables) {
+            // Tạo button với thông tin của bàn
             JButton btnTable = createTableButton(ban);
+            // Thêm button vào grid panel
             tablesPanel.add(btnTable);
         }
 
+        // Refresh layout để hiển thị các button mới
         tablesPanel.revalidate();
+        // Vẽ lại panel
         tablesPanel.repaint();
     }
 
@@ -156,14 +163,18 @@ public class TableManagementPanel extends JPanel {
      * - Bàn đang dùng: Xem đơn hàng (chỉ nhân viên phục vụ bàn đó)
      */
     private void handleTableClick(BanAnDTO ban) {
+        // Kiểm tra bàn có đang được sử dụng
         if (ban.isOccupied()) {
+            // Lấy order đang chờ của bàn này
             DonDatDTO pendingOrder = donDatDAO.getPendingDonDatByBan(ban.getMaBan());
 
             if (pendingOrder != null) {
+                // Lấy ID nhân viên hiện tại đang đăng nhập
                 int currentStaffId = SessionManager.getInstance().getCurrentUser().getMaNV();
 
-                // Security: Chỉ nhân viên phục vụ bàn này mới được xem
+                // Security check: Chỉ nhân viên phục vụ bàn này mới được xem order
                 if (pendingOrder.getMaNV() != currentStaffId) {
+                    // Hiển thị thông báo lỗi nếu không phải nhân viên phục vụ
                     JOptionPane.showMessageDialog(this,
                             "Bàn này đang có nhân viên khác phục vụ!",
                             "Không có quyền truy cập",
@@ -172,6 +183,7 @@ public class TableManagementPanel extends JPanel {
                 }
             }
 
+            // Hiển thị dialog chọn hành động cho bàn đang sử dụng
             String[] options = new String[]{"Xem đơn hàng", "Hủy"};
             int choice = JOptionPane.showOptionDialog(this,
                     "Chọn thao tác cho " + ban.getTenBan(),
@@ -182,9 +194,11 @@ public class TableManagementPanel extends JPanel {
                     options,
                     options[0]);
 
+            // Nếu chọn "Xem đơn hàng"
             if (choice == 0) viewOrder(ban);
         } else {
             // Bàn trống - cho phép tất cả staff thao tác
+            // Hiển thị dialog chọn hành động
             String[] options = new String[]{"Tạo đơn mới", "Sửa bàn", "Xóa bàn", "Hủy"};
             int choice = JOptionPane.showOptionDialog(this,
                     "Chọn thao tác cho " + ban.getTenBan(),
@@ -195,6 +209,7 @@ public class TableManagementPanel extends JPanel {
                     options,
                     options[0]);
 
+            // Xử lý theo lựa chọn
             if (choice == 0) createOrder(ban);
             else if (choice == 1) editTable(ban);
             else if (choice == 2) deleteTable(ban);

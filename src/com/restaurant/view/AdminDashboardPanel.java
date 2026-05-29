@@ -51,11 +51,11 @@ public class AdminDashboardPanel extends JPanel {
 
         add(titlePanel, BorderLayout.NORTH);
 
-        JPanel legendPanel = createLegendPanel();                        // Panel chú thích màu (xanh = trống, đỏ = đang phục vụ)
+        JPanel legendPanel = createLegendPanel();     // Panel chú thích màu (xanh = trống, đỏ = đang phục vụ)
         add(legendPanel, BorderLayout.SOUTH);
 
         tablesContainer = new JPanel();
-        tablesContainer.setLayout(new GridLayout(0, 4, 20, 20));        // Grid 4 cột, số hàng tự động
+        tablesContainer.setLayout(new GridLayout(0, 4, 20, 20));   // Grid 4 cột, số hàng tự động
         tablesContainer.setBackground(UIConstants.BG_PRIMARY);
 
         JScrollPane scrollPane = new JScrollPane(tablesContainer);
@@ -156,7 +156,7 @@ public class AdminDashboardPanel extends JPanel {
         card.add(Box.createRigidArea(new Dimension(0, 15)));
         card.add(lblStatus);
 
-        if (isOccupied) {                                                // Nếu bàn đang phục vụ → hiển thị thêm thông tin đơn hàng
+        if (isOccupied) {                           // Nếu bàn đang phục vụ → hiển thị thêm thông tin đơn hàng
             DonDatDTO currentOrder = donDatDAO.getCurrentOrderByTable(table.getMaBan()); // Lấy đơn hàng hiện tại của bàn
             if (currentOrder != null) {
                 NhanVienDTO staff = nhanVienDAO.getNhanVienById(currentOrder.getMaNV()); // Lấy thông tin nhân viên phục vụ

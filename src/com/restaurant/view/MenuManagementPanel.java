@@ -47,14 +47,19 @@ public class MenuManagementPanel extends JPanel {
 
     /**
      * Constructor: Khởi tạo panel quản lý thực đơn
+     * Tạo giao diện quản lý loại món và món ăn với grid card layout
      */
     public MenuManagementPanel() {
-        monDAO = new MonDAO();                                           // Khởi tạo DAO để thao tác với bảng Mon
-        loaiMonDAO = new LoaiMonDAO();                                   // Khởi tạo DAO để thao tác với bảng LoaiMon
+        // Khởi tạo DAO để thao tác với bảng Mon
+        monDAO = new MonDAO();
+        // Khởi tạo DAO để thao tác với bảng LoaiMon
+        loaiMonDAO = new LoaiMonDAO();
 
-        setLayout(new BorderLayout(0, 20));                              // Layout chính: Title (NORTH) + Cards (CENTER)
+        // Layout chính: Title (NORTH) + Cards (CENTER)
+        setLayout(new BorderLayout(0, 20));
         setBackground(BG_COLOR);
-        setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));     // Padding 25px cho toàn panel
+        // Padding 25px cho toàn panel
+        setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
 
         add(createTitlePanel(), BorderLayout.NORTH);                     // Thêm title panel với button "Thêm loại món"
 

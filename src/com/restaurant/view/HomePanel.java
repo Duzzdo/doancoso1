@@ -95,11 +95,12 @@ public class HomePanel extends JPanel {
 
         // Tính orders và revenue theo role
         int currentStaffId = SessionManager.getInstance().getCurrentUser().getMaNV();
+        boolean isStaffRole = SessionManager.getInstance().isStaff();
         List<DonDatDTO> todayOrders = donDatDAO.getDonDatByDate(today);
         int displayTodayOrders = 0;
         double displayTodayRevenue = 0;
 
-        if (isStaff) {
+        if (isStaffRole) {
             // Staff: Chỉ đếm orders và revenue của mình
             for (DonDatDTO order : todayOrders) {
                 if (order.getMaNV() == currentStaffId && "completed".equals(order.getTinhTrang())) {
@@ -139,7 +140,7 @@ public class HomePanel extends JPanel {
         statsPanel.add(card4);
 
         // Staff: Thêm 2 cards ranking
-        if (isStaff) {
+        if (isStaffRole) {
             String currentMonth = LocalDate.now().toString().substring(0, 7); // yyyy-MM
             StaffRankingDTO staffRanking = staffRankingDAO.getStaffRankingById(currentStaffId, currentMonth);
 
@@ -159,7 +160,7 @@ public class HomePanel extends JPanel {
         add(statsPanel, BorderLayout.CENTER);
 
         // Bottom panel: Staff (motivation + progress bar), Admin/Manager (welcome card)
-        if (isStaff) {
+        if (isStaffRole) {
             JPanel motivationPanel = createMotivationPanel(currentStaffId);
             add(motivationPanel, BorderLayout.SOUTH);
         } else {
@@ -168,7 +169,7 @@ public class HomePanel extends JPanel {
         }
 
         // Auto-refresh timer: Chỉ cho Staff, refresh mỗi 5 giây
-        if (isStaff) {
+        if (isStaffRole) {
             refreshTimer = new Timer(5000, e -> refreshData());
             refreshTimer.start();
         }
@@ -309,92 +310,127 @@ public class HomePanel extends JPanel {
      * Được gọi từ MainFrame hoặc Timer (auto-refresh mỗi 5 giây cho Staff)
      */
     public void refreshData() {
+        // Lấy số bàn trống từ database
         int availableTables = banAnDAO.getAvailableTablesCount();
+        // Lấy số bàn đang sử dụng
         int occupiedTables = banAnDAO.getOccupiedTablesCount();
+        // Lấy ngày hôm nay cho việc tính toán doanh thu/đơn
         String today = LocalDate.now().toString();
 
-        // Tính orders và revenue theo role
+        // Lấy ID và kiểm tra role của nhân viên hiện tại
         int currentStaffId = SessionManager.getInstance().getCurrentUser().getMaNV();
+        // Kiểm tra user là Staff hay Admin/Manager
         boolean isStaff = SessionManager.getInstance().isStaff();
+        // Lấy danh sách tất cả đơn hôm nay
         List<DonDatDTO> todayOrders = donDatDAO.getDonDatByDate(today);
+        // Khởi tạo biến để lưu số đơn hôm nay (sau khi filter theo role)
         int displayTodayOrders = 0;
+        // Khởi tạo biến để lưu doanh thu hôm nay (sau khi filter theo role)
         double displayTodayRevenue = 0;
 
+        // Kiểm tra nếu người dùng là Staff
         if (isStaff) {
-            // Staff: Chỉ đếm orders và revenue của mình
+            // Duyệt qua tất cả đơn hôm nay
             for (DonDatDTO order : todayOrders) {
+                // Chỉ đếm nếu là order của nhân viên này và đã completed
                 if (order.getMaNV() == currentStaffId && "completed".equals(order.getTinhTrang())) {
+                    // Tăng số đơn của nhân viên
                     displayTodayOrders++;
+                    // Cộng doanh thu vào tổng của nhân viên
                     displayTodayRevenue += order.getTongTien();
                 }
             }
         } else {
-            // Admin/Manager: Tổng của tất cả staff
+            // Duyệt qua tất cả đơn hôm nay
             for (DonDatDTO order : todayOrders) {
+                // Chỉ đếm nếu đơn đã completed
                 if ("completed".equals(order.getTinhTrang())) {
+                    // Tăng số đơn tổng
                     displayTodayOrders++;
+                    // Cộng doanh thu vào tổng
                     displayTodayRevenue += order.getTongTien();
                 }
             }
         }
 
-        // Update 4 cards chính
+        // Cập nhật nhãn số bàn trống nếu component còn tồn tại
         if (lblAvailableTables != null) {
             lblAvailableTables.setText(String.valueOf(availableTables));
         }
+        // Cập nhật nhãn số bàn đang sử dụng
         if (lblOccupiedTables != null) {
             lblOccupiedTables.setText(String.valueOf(occupiedTables));
         }
+        // Cập nhật nhãn số đơn hôm nay
         if (lblTodayOrders != null) {
             lblTodayOrders.setText(String.valueOf(displayTodayOrders));
         }
+        // Cập nhật nhãn doanh thu hôm nay (format tiền)
         if (lblTodayRevenue != null) {
             lblTodayRevenue.setText(String.format("%,.0f VNĐ", displayTodayRevenue));
         }
 
-        // Update ranking cards (chỉ cho Staff)
+        // Cập nhật các cards ranking chỉ cho Staff
         if (SessionManager.getInstance().isStaff()) {
+            // Lấy tháng hiện tại (yyyy-MM format)
             String currentMonth = LocalDate.now().toString().substring(0, 7);
+            // Lấy thông tin ranking của nhân viên trong tháng này
             StaffRankingDTO staffRanking = staffRankingDAO.getStaffRankingById(currentStaffId, currentMonth);
 
+            // Cập nhật nhãn xếp hạng hiện tại nếu tồn tại
             if (lblRanking != null) {
                 lblRanking.setText(staffRanking.getRank());
             }
+            // Cập nhật nhãn vị trí xếp hạng nếu tồn tại
             if (lblPosition != null) {
                 lblPosition.setText("#" + staffRanking.getXepHang());
             }
 
-            // Update motivation panel (bonus + progress bar)
+            // Cập nhật motivation panel (thưởng + thanh tiến độ)
+            // Lấy tổng doanh thu tháng này của nhân viên
             double monthRevenue = donDatDAO.getRevenueByStaffAndMonth(currentStaffId, currentMonth);
+            // Tính xếp hạng dựa vào doanh thu
             String currentRank = RankUtil.calculateRank(monthRevenue);
+            // Tính phần trăm bonus dựa vào doanh thu
             double bonusPercent = RankUtil.getBonusPercentageFromRevenue(monthRevenue) * 100;
+            // Tính doanh thu còn lại để lên rank tiếp theo
             double revenueToNext = RankUtil.getRevenueToNextRank(monthRevenue);
+            // Lấy tên rank tiếp theo
             String nextRank = RankUtil.getNextRank(monthRevenue);
+            // Tính tiến độ từ 0-1 để lên rank tiếp theo
             double progress = RankUtil.getProgressToNextRank(monthRevenue);
 
+            // Cập nhật nhãn thưởng nếu tồn tại
             if (lblBonus != null) {
                 lblBonus.setText(String.format("Thưởng hạng %s: +%.0f%% tiền lương", currentRank, bonusPercent));
             }
 
+            // Cập nhật nhãn rank tiếp theo nếu tồn tại
             if (lblNextRank != null) {
+                // Kiểm tra có rank tiếp theo chưa
                 if (!nextRank.isEmpty()) {
+                    // Hiển thị thông tin doanh thu còn lại
                     lblNextRank.setText(String.format("Còn %,.0f VNĐ để lên hạng %s", revenueToNext, nextRank));
                     lblNextRank.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-                    lblNextRank.setForeground(TEXT_LIGHT);
                 } else {
+                    // Hiển thị message nếu đã ở rank cao nhất
                     lblNextRank.setText("Bạn đã đạt hạng cao nhất! Tiếp tục phát huy!");
                     lblNextRank.setFont(new Font("Segoe UI", Font.BOLD, 15));
-                    lblNextRank.setForeground(new Color(243, 156, 18));
                 }
             }
 
+            // Cập nhật progress bar nếu tồn tại
             if (progressBar != null) {
+                // Set giá trị tiến độ (0-100%)
                 progressBar.setValue((int) (progress * 100));
+                // Set text hiển thị phần trăm
                 progressBar.setString(String.format("%.0f%%", progress * 100));
             }
         }
 
+        // Refresh layout để hiển thị dữ liệu mới
         revalidate();
+        // Vẽ lại panel
         repaint();
     }
 
